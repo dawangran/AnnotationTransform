@@ -13,7 +13,6 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 def get_shared_genes(adata1, adata2):
     """
     Find and return the shared genes between two AnnData objects.
@@ -58,13 +57,12 @@ def get_shared_genes(adata1, adata2):
     
     return shared_genes
 
-
 def train_scRNA_model(fileLocation, predictType, shared_genes, saveLocation, **kwargs):
     """
     Train a RandomForest model on scRNA-seq data and save the model.
 
     Parameters:
-    fileLocation (str): Path to the scRNA-seq data file.
+    fileLocation (str or AnnData): Path to the scRNA-seq data file or an AnnData object.
     predictType (str): The column name in .obs containing the labels.
     shared_genes (list): List of shared genes.
     saveLocation (str): Path to save the trained model.
@@ -74,17 +72,19 @@ def train_scRNA_model(fileLocation, predictType, shared_genes, saveLocation, **k
     RandomForestClassifier: The trained RandomForest model.
     """
     logging.info(f"Reading scRNA-seq data from {fileLocation}.")
-    
+
     # Validate fileLocation
-    if not isinstance(fileLocation, str):
-        logging.error("fileLocation should be a string.")
-        raise TypeError("fileLocation should be a string.")
-    
-    try:
-        adata = sc.read(fileLocation)
-    except Exception as e:
-        logging.error(f"Failed to read scRNA-seq data from {fileLocation}: {e}")
-        raise
+    if isinstance(fileLocation, str):
+        try:
+            adata = sc.read(fileLocation)
+        except Exception as e:
+            logging.error(f"Failed to read scRNA-seq data from {fileLocation}: {e}")
+            raise
+    elif isinstance(fileLocation, sc.AnnData):
+        adata = fileLocation
+    else:
+        logging.error("fileLocation should be a string or an AnnData object.")
+        raise TypeError("fileLocation should be a string or an AnnData object.")
     
     adata.var_names_make_unique()
 
@@ -105,14 +105,17 @@ def train_scRNA_model(fileLocation, predictType, shared_genes, saveLocation, **k
         logging.error(f"Missing genes in the dataset: {missing_genes}")
         raise ValueError(f"Missing genes in the dataset: {missing_genes}")
 
-    indata = adata[:, shared_genes].X
+    if  isinstance(adata[:, shared_genes].X, np.ndarray):
+        indata = adata[:, shared_genes].X
+    else:
+        indata = adata[:, shared_genes].X.A
 
     # Ensure indata is an array
-    if isinstance(indata, pd.DataFrame):
-        indata = indata.values
-    elif not isinstance(indata, np.ndarray):
-        logging.error("indata should be a numpy array or pandas DataFrame.")
-        raise TypeError("indata should be a numpy array or pandas DataFrame.")
+    if isinstance(indata, np.ndarray):
+        indata = indata
+    else:
+        logging.error("indata should be a numpy array.")
+        raise TypeError("indata should be a numpy array.")
 
     labels = np.array(labels)
 
@@ -152,7 +155,7 @@ def train_scRNA_model(fileLocation, predictType, shared_genes, saveLocation, **k
     return rclf
 
 
-def predict_scATAC_data(scATAC_obj, model, shared_genes, labels):
+def predict_scATAC_data(scATAC_obj, model, shared_genes, scRNA_obj,labels,majority_voting=None):
     """
     Predict cell types for scATAC-seq data using a trained model.
 
@@ -197,8 +200,11 @@ def predict_scATAC_data(scATAC_obj, model, shared_genes, labels):
         raise ValueError(f"Missing genes in the dataset: {missing_genes}")
 
     logging.info("Selecting shared genes for prediction.")
-    data = scATAC_obj[:, shared_genes].X
-
+    if isinstance(scATAC_obj[:, shared_genes].X, np.ndarray):
+        data = scATAC_obj[:, shared_genes].X
+    else:
+        data = scATAC_obj[:, shared_genes].X.A
+        
     # Ensure data is an array
     if isinstance(data, pd.DataFrame):
         data = data.values
@@ -206,13 +212,12 @@ def predict_scATAC_data(scATAC_obj, model, shared_genes, labels):
         logging.error("data should be a numpy array or pandas DataFrame.")
         raise TypeError("data should be a numpy array or pandas DataFrame.")
 
-    # Validate labels
-    if labels not in scATAC_obj.obs.columns:
+    # Validate label
+    if labels not in scRNA_obj.obs.columns:
         logging.error(f"{labels} is not found in .obs columns.")
         raise ValueError(f"{labels} is not found in .obs columns.")
+    labels_list=scRNA_obj.obs[labels].to_list()
     
-    original_labels = scATAC_obj.obs[labels].values
-
     logging.info("Predicting cell types.")
     try:
         predictions = loaded_model.predict(data)
@@ -221,7 +226,7 @@ def predict_scATAC_data(scATAC_obj, model, shared_genes, labels):
         raise
     
     le = LabelEncoder()
-    le.fit(original_labels)  # Fit the encoder on the original labels
+    le.fit(labels_list)  # Fit the encoder on the original labels
 
     try:
         predicted_labels = le.inverse_transform(predictions)  # Convert encoded predictions back to original labels
@@ -230,18 +235,21 @@ def predict_scATAC_data(scATAC_obj, model, shared_genes, labels):
         raise
     
     scATAC_obj.obs['predicted_labels'] = predicted_labels
+
+    if majority_voting:
     
-    logging.info("Performing majority voting for label consistency.")
-    try:
-        df = scATAC_obj.obs[[labels, 'predicted_labels']]
-        df = df.loc[df.groupby(labels)['predicted_labels'].idxmax()]
-        label = {k: v for k, v in zip(df[labels].to_list(), df['predicted_labels'].to_list())}
-        scATAC_obj.obs['majority_voting'] = None
-        for k, v in label.items():
-            scATAC_obj.obs.loc[scATAC_obj.obs[labels] == k, 'majority_voting'] = v
-    except Exception as e:
-        logging.error(f"Majority voting failed: {e}")
-        raise
+        logging.info("Performing majority voting for label consistency.")
+        try:
+            df=scATAC_obj.obs[['leiden','predicted_labels']]
+            grouped_counts = df.groupby('leiden')['predicted_labels'].value_counts()
+            max_count_elements = grouped_counts.groupby('leiden').idxmax()
+            label={k:v for k,v in max_count_elements}
+            scATAC_obj.obs['majority_voting'] = None
+            for k, v in label.items():
+                scATAC_obj.obs.loc[scATAC_obj.obs[majority_voting] == k, 'majority_voting'] = v
+        except Exception as e:
+            logging.error(f"Majority voting failed: {e}")
+            raise
 
     return scATAC_obj
 
@@ -279,7 +287,7 @@ def evaluate_predictions(true_labels, predicted_labels):
     return results
 
 
-def plot_confusion_matrix(cm, labels, title='Confusion Matrix'):
+def plot_confusion_matrix(cm,title='Confusion Matrix'):
     """
     Plot the confusion matrix.
 
@@ -298,22 +306,10 @@ def plot_confusion_matrix(cm, labels, title='Confusion Matrix'):
         logging.error("Confusion matrix must be a square matrix.")
         raise ValueError("Confusion matrix must be a square matrix.")
     
-    if not isinstance(labels, list):
-        logging.error("Labels must be a list.")
-        raise TypeError("Labels must be a list.")
-    
-    if len(labels) != cm.shape[0]:
-        logging.error("The number of labels must match the dimensions of the confusion matrix.")
-        raise ValueError("The number of labels must match the dimensions of the confusion matrix.")
-    
-    if not all(isinstance(label, str) for label in labels):
-        logging.error("All labels must be strings.")
-        raise TypeError("All labels must be strings.")
-    
     logging.info("Plotting confusion matrix.")
     
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.title(title)
@@ -346,10 +342,6 @@ def plot_umap(sc_obj, color_by='predicted_labels', title='UMAP Plot'):
         raise TypeError("The title must be a string.")
 
     logging.info("Plotting UMAP.")
-    
-    # 计算邻居和UMAP
-    sc.pp.neighbors(sc_obj)
-    sc.tl.umap(sc_obj)
     
     # 绘制UMAP
     sc.pl.umap(sc_obj, color=color_by, title=title)
@@ -417,10 +409,7 @@ def plot_pca(sc_obj, color_by='predicted_labels', title='PCA Plot'):
         raise TypeError("The title must be a string.")
 
     logging.info("Plotting PCA.")
-    
-    # 计算PCA
-    sc.tl.pca(sc_obj)
-    
+
     # 绘制PCA
     sc.pl.pca(sc_obj, color=color_by, title=title)
     plt.show()
