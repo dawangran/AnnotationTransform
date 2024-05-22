@@ -1,3 +1,3 @@
 # AnnotationTransform
  
-该软件提供了一个训练模型的功能，用户可以使用scRNA数据作为输入，利用随机森林算法进行模型的训练。通过选择和调整不同的参数和特征，用户可以根据其研究需求优化模型的性能。一旦模型训练完成，该软件允许用户利用训练好的模型对新的scATAC数据进行预测。用户可以将scATAC数据输入到软件中，经过模型的处理和分析，获得预测的结果。该软件提供了模型评估的功能，可以帮助用户评估训练好的模型的性能和准确度，以及可视化功能。
+The software provides a training model function, users can use scRNA data as input, using random forest algorithm to train the model. By selecting and adjusting different parameters and features, users can optimize the performance of the model according to their research needs. Once the model is trained, the software allows users to use the trained model to make predictions on new scATAC data. scATAC data can be entered into the software, processed and analyzed by the model, and predicted results can be obtained. The software provides model evaluation capabilities to help users evaluate the performance and accuracy of trained models, as well as visualization capabilities.

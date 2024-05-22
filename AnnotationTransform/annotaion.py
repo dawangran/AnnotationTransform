@@ -1,10 +1,13 @@
+import logging
+import pickle
+import numpy as np
 import pandas as pd
 import scanpy as sc
-from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
-import numpy as np
-import pickle
-import logging
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 
 
 # Configure logging
@@ -242,4 +245,182 @@ def predict_scATAC_data(scATAC_obj, model, shared_genes, labels):
 
     return scATAC_obj
 
+def evaluate_predictions(true_labels, predicted_labels):
+    logging.info("Evaluating predictions.")
+    
+    # 验证输入参数
+    if not isinstance(true_labels, (list, tuple, np.ndarray)):
+        logging.error("true_labels must be a list, tuple, or numpy array.")
+        raise TypeError("true_labels must be a list, tuple, or numpy array.")
+    
+    if not isinstance(predicted_labels, (list, tuple, np.ndarray)):
+        logging.error("predicted_labels must be a list, tuple, or numpy array.")
+        raise TypeError("predicted_labels must be a list, tuple, or numpy array.")
+    
+    if len(true_labels) != len(predicted_labels):
+        logging.error("true_labels and predicted_labels must have the same length.")
+        raise ValueError("true_labels and predicted_labels must have the same length.")
 
+    # 计算评价指标
+    accuracy = accuracy_score(true_labels, predicted_labels)
+    precision = precision_score(true_labels, predicted_labels, average='weighted')
+    recall = recall_score(true_labels, predicted_labels, average='weighted')
+    f1 = f1_score(true_labels, predicted_labels, average='weighted')
+    cm = confusion_matrix(true_labels, predicted_labels)
+    
+    results = {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1,
+        "confusion_matrix": cm
+    }
+    
+    return results
+
+
+def plot_confusion_matrix(cm, labels, title='Confusion Matrix'):
+    """
+    Plot the confusion matrix.
+
+    Parameters:
+    cm (array-like): Confusion matrix.
+    labels (list): List of labels.
+    title (str): Title of the plot.
+    """
+    # 验证输入参数
+    if not isinstance(cm, (np.ndarray, list)):
+        logging.error("Confusion matrix must be a numpy array or a list.")
+        raise TypeError("Confusion matrix must be a numpy array or a list.")
+    
+    cm = np.array(cm)
+    if cm.ndim != 2 or cm.shape[0] != cm.shape[1]:
+        logging.error("Confusion matrix must be a square matrix.")
+        raise ValueError("Confusion matrix must be a square matrix.")
+    
+    if not isinstance(labels, list):
+        logging.error("Labels must be a list.")
+        raise TypeError("Labels must be a list.")
+    
+    if len(labels) != cm.shape[0]:
+        logging.error("The number of labels must match the dimensions of the confusion matrix.")
+        raise ValueError("The number of labels must match the dimensions of the confusion matrix.")
+    
+    if not all(isinstance(label, str) for label in labels):
+        logging.error("All labels must be strings.")
+        raise TypeError("All labels must be strings.")
+    
+    logging.info("Plotting confusion matrix.")
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title(title)
+    plt.show()
+    
+def plot_umap(sc_obj, color_by='predicted_labels', title='UMAP Plot'):
+    """
+    Plot UMAP for the given scRNA-seq or scATAC-seq data.
+
+    Parameters:
+    sc_obj (AnnData): The data object to plot.
+    color_by (str): The column in .obs to color by.
+    title (str): Title of the plot.
+    """
+    # 验证输入参数
+    if not isinstance(sc_obj, sc.AnnData):
+        logging.error("The data object must be an instance of AnnData.")
+        raise TypeError("The data object must be an instance of AnnData.")
+    
+    if not isinstance(color_by, str):
+        logging.error("The color_by parameter must be a string.")
+        raise TypeError("The color_by parameter must be a string.")
+    
+    if color_by not in sc_obj.obs.columns:
+        logging.error(f"The column '{color_by}' is not present in the .obs attribute of the data object.")
+        raise ValueError(f"The column '{color_by}' is not present in the .obs attribute of the data object.")
+    
+    if not isinstance(title, str):
+        logging.error("The title must be a string.")
+        raise TypeError("The title must be a string.")
+
+    logging.info("Plotting UMAP.")
+    
+    # 计算邻居和UMAP
+    sc.pp.neighbors(sc_obj)
+    sc.tl.umap(sc_obj)
+    
+    # 绘制UMAP
+    sc.pl.umap(sc_obj, color=color_by, title=title)
+    plt.show()
+    
+def plot_tsne(sc_obj, color_by='predicted_labels', title='t-SNE Plot'):
+    """
+    Plot t-SNE for the given scRNA-seq or scATAC-seq data.
+
+    Parameters:
+    sc_obj (AnnData): The data object to plot.
+    color_by (str): The column in .obs to color by.
+    title (str): Title of the plot.
+    """
+    # 验证输入参数
+    if not isinstance(sc_obj, sc.AnnData):
+        logging.error("The data object must be an instance of AnnData.")
+        raise TypeError("The data object must be an instance of AnnData.")
+    
+    if not isinstance(color_by, str):
+        logging.error("The color_by parameter must be a string.")
+        raise TypeError("The color_by parameter must be a string.")
+    
+    if color_by not in sc_obj.obs.columns:
+        logging.error(f"The column '{color_by}' is not present in the .obs attribute of the data object.")
+        raise ValueError(f"The column '{color_by}' is not present in the .obs attribute of the data object.")
+    
+    if not isinstance(title, str):
+        logging.error("The title must be a string.")
+        raise TypeError("The title must be a string.")
+
+    logging.info("Plotting t-SNE.")
+    
+    # 计算t-SNE
+    sc.tl.tsne(sc_obj)
+    
+    # 绘制t-SNE
+    sc.pl.tsne(sc_obj, color=color_by, title=title)
+    plt.show()
+    
+def plot_pca(sc_obj, color_by='predicted_labels', title='PCA Plot'):
+    """
+    Plot PCA for the given scRNA-seq or scATAC-seq data.
+
+    Parameters:
+    sc_obj (AnnData): The data object to plot.
+    color_by (str): The column in .obs to color by.
+    title (str): Title of the plot.
+    """
+    # 验证输入参数
+    if not isinstance(sc_obj, sc.AnnData):
+        logging.error("The data object must be an instance of AnnData.")
+        raise TypeError("The data object must be an instance of AnnData.")
+    
+    if not isinstance(color_by, str):
+        logging.error("The color_by parameter must be a string.")
+        raise TypeError("The color_by parameter must be a string.")
+    
+    if color_by not in sc_obj.obs.columns:
+        logging.error(f"The column '{color_by}' is not present in the .obs attribute of the data object.")
+        raise ValueError(f"The column '{color_by}' is not present in the .obs attribute of the data object.")
+    
+    if not isinstance(title, str):
+        logging.error("The title must be a string.")
+        raise TypeError("The title must be a string.")
+
+    logging.info("Plotting PCA.")
+    
+    # 计算PCA
+    sc.tl.pca(sc_obj)
+    
+    # 绘制PCA
+    sc.pl.pca(sc_obj, color=color_by, title=title)
+    plt.show()
