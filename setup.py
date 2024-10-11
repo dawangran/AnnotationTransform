@@ -11,7 +11,7 @@ setuptools.setup(
     description="Single cell automatic annotation",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dawangran/scCyclone",
+    url="https://github.com/dawangran/AnnotationTransform",
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     requires= ['pandas','scanpy','numpy','sklearn','pickle'],
