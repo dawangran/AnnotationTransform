@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: AnnotationTransform
+Version: 1.0.0
+Summary: Single cell automatic annotation
+Home-page: https://github.com/dawangran/scCyclone
+Author: Dawn
+Author-email: 605547565@qq.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires: pandas
+Requires: scanpy
+Requires: numpy
+Requires: sklearn
+Requires: pickle
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# AnnotationTransform
+ 
+The software provides a training model function, users can use scRNA data as input, using random forest algorithm to train the model. By selecting and adjusting different parameters and features, users can optimize the performance of the model according to their research needs. Once the model is trained, the software allows users to use the trained model to make predictions on new scATAC data. scATAC data can be entered into the software, processed and analyzed by the model, and predicted results can be obtained. The software provides model evaluation capabilities to help users evaluate the performance and accuracy of trained models, as well as visualization capabilities.

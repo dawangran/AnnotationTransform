@@ -1,12 +1,25 @@
-from setuptools import setup 
-from setuptools import find_packages
-
-setup(name='AnnotationTransform',
-      version='0.0.1',
-      description='Single cell automatic annotation',
-      author='dawn',
-      author_email='605547565@qq.com',
-      requires= ['pandas','scanpy','numpy','sklearn','pickle'], # 定义依赖哪些模块
-      packages=find_packages(),  # 系统自动从当前目录开始找包
-      license="apache 3.0"
-      )
+import setuptools
+ 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+ 
+setuptools.setup(
+    name="AnnotationTransform", 
+    version="1.0.0",
+    author="Dawn",
+    author_email="605547565@qq.com",
+    description="Single cell automatic annotation",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/dawangran/scCyclone",
+    package_dir={"": "src"},
+    packages=setuptools.find_packages(where="src"),
+    requires= ['pandas','scanpy','numpy','sklearn','pickle'],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires='>=3.8'
+    
+)

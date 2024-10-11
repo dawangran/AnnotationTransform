@@ -1,0 +1,11 @@
+.DS_Store
+.gitattributes
+LICENSE
+README.md
+setup.py
+src/AnnotationTransform/__init__.py
+src/AnnotationTransform/annotaion.py
+src/AnnotationTransform.egg-info/PKG-INFO
+src/AnnotationTransform.egg-info/SOURCES.txt
+src/AnnotationTransform.egg-info/dependency_links.txt
+src/AnnotationTransform.egg-info/top_level.txt
