@@ -16,18 +16,13 @@ Before you begin, ensure you have met the following requirements:
 To install the software, follow these steps:
 
 ```
-pip install AnnotationTransform==1.0.0
+pip install AnnotationTransform
 ```
-
-
 
 
 ## License 
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/yourusername/yourrepository/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License.
 
-## Acknowledgments
-
-- Hat tip to anyone who's code was used
-- Inspiration, code snippets, etc.
-- [Random Forest Algorithm](https://en.wikipedia.org/wiki/Random_forest) for the machine learning model
+## Contact
+For any questions or feedback, please reach out to us at 605547565@qq.com.
