@@ -10,7 +10,6 @@ The software provides a training model function, users can use scRNA data as inp
 Before you begin, ensure you have met the following requirements:
 - Python 3.8 or higher
 - A compatible operating system (e.g., Windows, macOS, Linux)
-- Any additional dependencies listed in the `requirements.txt` file
 
 ### Installation
 
